@@ -27,7 +27,9 @@ const Planner = () => {
             position.coords.longitude,
           ];
           setCurrentLocation(userLocation);
-          toast.success("Location detected!");
+          // Auto-set as start point
+          setStartPoint(userLocation);
+          toast.success("Location detected and set as start point!");
         },
         (error) => {
           console.error("Error getting location:", error);
