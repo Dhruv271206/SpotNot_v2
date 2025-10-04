@@ -21,6 +21,8 @@ interface RouteFormProps {
   onStartPointChange: (point: [number, number] | undefined) => void;
   onEndPointChange: (point: [number, number] | undefined) => void;
   onCheckpointsChange: (checkpoints: Checkpoint[]) => void;
+  onCheckpointReached?: (id: string) => void;
+  onTravelModeChange?: (mode: TravelMode) => void;
   currentLocation?: [number, number];
 }
 
@@ -60,6 +62,7 @@ const RouteForm = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('[RouteForm] Submit calculate route', { startPoint, endPoint, travelMode, checkpoints });
     
     if (!startPoint || !endPoint) {
       toast.error("Please set start and end points");
@@ -74,6 +77,7 @@ const RouteForm = ({
     const startLng = parseFloat(manualStartLng);
     const endLat = parseFloat(manualEndLat);
     const endLng = parseFloat(manualEndLng);
+    console.log('[RouteForm] Apply manual coords', { startLat, startLng, endLat, endLng });
 
     if (!isNaN(startLat) && !isNaN(startLng)) {
       onStartPointChange([startLat, startLng]);
@@ -85,6 +89,7 @@ const RouteForm = ({
   };
 
   const useCurrentLocation = () => {
+    console.log('[RouteForm] Use current location clicked', { currentLocation });
     if (currentLocation) {
       onStartPointChange(currentLocation);
       toast.success("Start point set to your location!");
@@ -94,6 +99,7 @@ const RouteForm = ({
   };
 
   const clearRoute = () => {
+    console.log('[RouteForm] Clear route clicked');
     onStartPointChange(undefined);
     onEndPointChange(undefined);
     onCheckpointsChange([]);
@@ -101,6 +107,7 @@ const RouteForm = ({
   };
 
   const removeCheckpoint = (id: string) => {
+    console.log('[RouteForm] Remove checkpoint', { id });
     onCheckpointsChange(checkpoints.filter((cp) => cp.id !== id));
     toast.success("Checkpoint removed");
   };
@@ -241,7 +248,7 @@ const RouteForm = ({
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6"
-                    onClick={() => onStartPointChange(undefined)}
+                    onClick={() => { console.log('[RouteForm] Clear start point'); onStartPointChange(undefined); }}
                   >
                     <X className="h-3 w-3" />
                   </Button>
@@ -266,7 +273,7 @@ const RouteForm = ({
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6"
-                    onClick={() => onEndPointChange(undefined)}
+                    onClick={() => { console.log('[RouteForm] Clear end point'); onEndPointChange(undefined); }}
                   >
                     <X className="h-3 w-3" />
                   </Button>
@@ -286,7 +293,7 @@ const RouteForm = ({
                   key={mode.value}
                   type="button"
                   variant={travelMode === mode.value ? "hero" : "outline"}
-                  onClick={() => setTravelMode(mode.value)}
+                  onClick={() => { console.log('[RouteForm] Travel mode change', { mode: mode.value }); setTravelMode(mode.value); onTravelModeChange?.(mode.value); }}
                   className="flex-col h-auto py-3 gap-1"
                 >
                   <mode.icon className="h-5 w-5" />
@@ -319,7 +326,7 @@ const RouteForm = ({
                 {checkpoints.map((checkpoint, index) => (
                   <div
                     key={checkpoint.id}
-                    className="flex items-start gap-2 p-3 rounded-lg bg-muted"
+                    className="flex items-start gap-3 p-3 rounded-lg bg-muted"
                   >
                     <div className="flex-1">
                       <div className="font-medium">
@@ -334,14 +341,24 @@ const RouteForm = ({
                         </div>
                       )}
                     </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeCheckpoint(checkpoint.id)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => { console.log('[RouteForm] Mark reached clicked', { id: checkpoint.id }); onCheckpointReached?.(checkpoint.id); }}
+                      >
+                        Mark reached
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeCheckpoint(checkpoint.id)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>

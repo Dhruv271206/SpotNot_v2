@@ -15,6 +15,7 @@ const Planner = () => {
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
   const [currentLocation, setCurrentLocation] = useState<[number, number] | undefined>();
   const [checkpointCounter, setCheckpointCounter] = useState(1);
+  const [travelMode, setTravelMode] = useState<TravelMode>("driving");
 
   // Get user's current location on mount
   useEffect(() => {
@@ -26,13 +27,14 @@ const Planner = () => {
             position.coords.latitude,
             position.coords.longitude,
           ];
+          console.log('[Planner] Geolocation success', { userLocation });
           setCurrentLocation(userLocation);
           // Auto-set as start point
           setStartPoint(userLocation);
           toast.success("Location detected and set as start point!");
         },
         (error) => {
-          console.error("Error getting location:", error);
+          console.error("[Planner] Error getting location:", error);
           toast.error("Could not get your location. Please click on map to set points.");
         }
       );
@@ -43,12 +45,15 @@ const Planner = () => {
 
   // Handle map clicks to place markers
   const handleMapClick = (lat: number, lng: number) => {
+    console.log('[Planner] Map click at', { lat, lng });
     const clickedPoint: [number, number] = [lat, lng];
 
     if (!startPoint) {
+      console.log('[Planner] Setting startPoint', clickedPoint);
       setStartPoint(clickedPoint);
       toast.success("Start point set!");
     } else if (!endPoint) {
+      console.log('[Planner] Setting endPoint', clickedPoint);
       setEndPoint(clickedPoint);
       toast.success("End point set!");
     } else {
@@ -58,94 +63,60 @@ const Planner = () => {
         name: `Checkpoint ${checkpointCounter}`,
         coordinates: clickedPoint,
       };
+      console.log('[Planner] Adding checkpoint', newCheckpoint);
       setCheckpoints([...checkpoints, newCheckpoint]);
       setCheckpointCounter(checkpointCounter + 1);
       toast.success(`Checkpoint ${checkpointCounter} added!`);
     }
   };
 
-  const calculateRoute = async (
+  // Mark checkpoint as reached and optionally recalc route
+  const handleCheckpointReached = async (id: string) => {
+    console.log('[Planner] Mark checkpoint reached', { id });
+    const remaining = checkpoints.filter((cp) => cp.id !== id);
+    setCheckpoints(remaining);
+
+    try {
+      const newStart = currentLocation || startPoint;
+      if (newStart && endPoint) {
+        console.log('[Planner] Recalculating route after checkpoint reached', { newStart, endPoint, travelMode, remaining });
+        await calculateRoute(newStart, endPoint, travelMode, remaining);
+        toast.success("Checkpoint marked as reached and route updated");
+      } else {
+        toast.success("Checkpoint marked as reached");
+      }
+    } catch (e) {
+      console.error('[Planner] Error recalculating after checkpoint reached', e);
+    }
+  };
+   const calculateRoute = async (
     start: [number, number],
     end: [number, number],
     mode: TravelMode,
     routeCheckpoints: Checkpoint[]
   ) => {
+    console.log('[Planner] Calculate route requested', { start, end, mode, checkpoints: routeCheckpoints });
     setIsLoading(true);
 
     try {
-      // Mock route calculation - in production, this would call OpenRouteService API
-      // For now, creating a simple straight line route with mock data
-      const distance = calculateDistance(start, end);
-      const duration = calculateDuration(distance, mode);
-      const co2 = calculateCO2(distance, mode);
-
-      // Create a simple route geometry (straight line)
-      const geometry: [number, number][] = [start];
-      
-      // Add checkpoint coordinates to geometry
-      routeCheckpoints.forEach(checkpoint => {
-        geometry.push(checkpoint.coordinates);
+      const controller = new AbortController();
+      const { routeWithOSRM } = await import("@/lib/routing");
+      const data = await routeWithOSRM({
+        start,
+        end,
+        mode,
+        checkpoints: routeCheckpoints,
+        signal: controller.signal,
       });
-      
-      geometry.push(end);
-
-      const mockRouteData: RouteData = {
-        distance,
-        duration,
-        co2Emission: co2,
-        geometry,
-      };
-
-      setRouteData(mockRouteData);
+      console.log('[Planner] Routing success', { distance: data.distance, duration: data.duration, points: data.geometry.length });
+      setRouteData(data);
       toast.success("Route calculated successfully!");
     } catch (error) {
-      console.error("Error calculating route:", error);
+      console.error("[Planner] Error calculating route:", error);
       toast.error("Failed to calculate route. Please try again.");
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Helper functions for mock calculations
-  const calculateDistance = (start: [number, number], end: [number, number]): number => {
-    // Haversine formula for distance between two points
-    const R = 6371e3; // Earth's radius in meters
-    const φ1 = (start[0] * Math.PI) / 180;
-    const φ2 = (end[0] * Math.PI) / 180;
-    const Δφ = ((end[0] - start[0]) * Math.PI) / 180;
-    const Δλ = ((end[1] - start[1]) * Math.PI) / 180;
-
-    const a =
-      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    return R * c;
-  };
-
-  const calculateDuration = (distance: number, mode: TravelMode): number => {
-    // Average speeds in km/h
-    const speeds = {
-      driving: 60,
-      cycling: 20,
-      walking: 5,
-    };
-    
-    const distanceKm = distance / 1000;
-    const hours = distanceKm / speeds[mode];
-    return hours * 3600; // Convert to seconds
-  };
-
-  const calculateCO2 = (distance: number, mode: TravelMode): number => {
-    // CO2 emissions in kg per km
-    const emissions = {
-      driving: 0.12, // Average car
-      cycling: 0,
-      walking: 0,
-    };
-
-    const distanceKm = distance / 1000;
-    return distanceKm * emissions[mode];
   };
 
   return (
@@ -174,6 +145,8 @@ const Planner = () => {
                 onStartPointChange={setStartPoint}
                 onEndPointChange={setEndPoint}
                 onCheckpointsChange={setCheckpoints}
+                onCheckpointReached={handleCheckpointReached}
+                onTravelModeChange={setTravelMode}
                 currentLocation={currentLocation}
               />
               {routeData && <RouteDetails routeData={routeData} />}

@@ -44,6 +44,7 @@ const RouteMap = ({ routeGeometry, startPoint, endPoint, checkpoints, onMapClick
     // Add click handler
     if (onMapClick) {
       map.on("click", (e) => {
+        console.log('[RouteMap] Map clicked', { lat: e.latlng.lat, lng: e.latlng.lng });
         onMapClick(e.latlng.lat, e.latlng.lng);
       });
     }
