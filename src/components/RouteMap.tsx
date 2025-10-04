@@ -9,6 +9,7 @@ interface RouteMapProps {
   endPoint?: [number, number];
   checkpoints?: Checkpoint[];
   onMapClick?: (lat: number, lng: number) => void;
+  currentLocation?: [number, number];
 }
 
 // Fix Leaflet default marker icons
@@ -19,17 +20,20 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-const RouteMap = ({ routeGeometry, startPoint, endPoint, checkpoints, onMapClick }: RouteMapProps) => {
+const RouteMap = ({ routeGeometry, startPoint, endPoint, checkpoints, onMapClick, currentLocation }: RouteMapProps) => {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const routeLayerRef = useRef<L.Polyline | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
+  const currentLocationMarkerRef = useRef<L.CircleMarker | null>(null);
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
-    // Initialize map
-    const map = L.map(mapContainerRef.current).setView([20, 0], 2);
+    // Initialize map with user's location or default
+    const initialCenter = currentLocation || [20, 0];
+    const initialZoom = currentLocation ? 13 : 2;
+    const map = L.map(mapContainerRef.current).setView(initialCenter, initialZoom);
     mapRef.current = map;
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -49,6 +53,36 @@ const RouteMap = ({ routeGeometry, startPoint, endPoint, checkpoints, onMapClick
       mapRef.current = null;
     };
   }, [onMapClick]);
+
+  // Update current location marker
+  useEffect(() => {
+    if (!mapRef.current || !currentLocation) return;
+
+    const map = mapRef.current;
+
+    // Remove existing current location marker
+    if (currentLocationMarkerRef.current) {
+      currentLocationMarkerRef.current.remove();
+    }
+
+    // Add current location marker (blue pulsing circle)
+    currentLocationMarkerRef.current = L.circleMarker(currentLocation, {
+      radius: 10,
+      fillColor: "#3b82f6",
+      color: "#ffffff",
+      weight: 3,
+      opacity: 1,
+      fillOpacity: 0.8,
+    })
+      .addTo(map)
+      .bindPopup("<b>Your Location</b>");
+
+    return () => {
+      if (currentLocationMarkerRef.current) {
+        currentLocationMarkerRef.current.remove();
+      }
+    };
+  }, [currentLocation]);
 
   useEffect(() => {
     if (!mapRef.current) return;

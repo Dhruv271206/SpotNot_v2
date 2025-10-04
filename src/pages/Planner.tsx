@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import RouteForm from "@/components/RouteForm";
@@ -13,6 +13,54 @@ const Planner = () => {
   const [startPoint, setStartPoint] = useState<[number, number] | undefined>();
   const [endPoint, setEndPoint] = useState<[number, number] | undefined>();
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
+  const [currentLocation, setCurrentLocation] = useState<[number, number] | undefined>();
+  const [checkpointCounter, setCheckpointCounter] = useState(1);
+
+  // Get user's current location on mount
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      toast.info("Getting your location...");
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const userLocation: [number, number] = [
+            position.coords.latitude,
+            position.coords.longitude,
+          ];
+          setCurrentLocation(userLocation);
+          toast.success("Location detected!");
+        },
+        (error) => {
+          console.error("Error getting location:", error);
+          toast.error("Could not get your location. Please click on map to set points.");
+        }
+      );
+    } else {
+      toast.error("Geolocation is not supported by your browser");
+    }
+  }, []);
+
+  // Handle map clicks to place markers
+  const handleMapClick = (lat: number, lng: number) => {
+    const clickedPoint: [number, number] = [lat, lng];
+
+    if (!startPoint) {
+      setStartPoint(clickedPoint);
+      toast.success("Start point set!");
+    } else if (!endPoint) {
+      setEndPoint(clickedPoint);
+      toast.success("End point set!");
+    } else {
+      // Add as checkpoint
+      const newCheckpoint: Checkpoint = {
+        id: Date.now().toString(),
+        name: `Checkpoint ${checkpointCounter}`,
+        coordinates: clickedPoint,
+      };
+      setCheckpoints([...checkpoints, newCheckpoint]);
+      setCheckpointCounter(checkpointCounter + 1);
+      toast.success(`Checkpoint ${checkpointCounter} added!`);
+    }
+  };
 
   const calculateRoute = async (
     start: [number, number],
@@ -21,9 +69,6 @@ const Planner = () => {
     routeCheckpoints: Checkpoint[]
   ) => {
     setIsLoading(true);
-    setStartPoint(start);
-    setEndPoint(end);
-    setCheckpoints(routeCheckpoints);
 
     try {
       // Mock route calculation - in production, this would call OpenRouteService API
@@ -118,7 +163,17 @@ const Planner = () => {
 
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-1 space-y-6">
-              <RouteForm onCalculateRoute={calculateRoute} isLoading={isLoading} />
+              <RouteForm 
+                onCalculateRoute={calculateRoute} 
+                isLoading={isLoading}
+                startPoint={startPoint}
+                endPoint={endPoint}
+                checkpoints={checkpoints}
+                onStartPointChange={setStartPoint}
+                onEndPointChange={setEndPoint}
+                onCheckpointsChange={setCheckpoints}
+                currentLocation={currentLocation}
+              />
               {routeData && <RouteDetails routeData={routeData} />}
             </div>
 
@@ -128,6 +183,8 @@ const Planner = () => {
                 startPoint={startPoint}
                 endPoint={endPoint}
                 checkpoints={checkpoints}
+                onMapClick={handleMapClick}
+                currentLocation={currentLocation}
               />
             </div>
           </div>
