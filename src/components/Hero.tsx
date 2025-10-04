@@ -30,8 +30,7 @@ const Hero = () => {
           </h1>
           
           <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
-            Create eco-friendly routes with custom checkpoints, track your carbon footprint, 
-            and discover the best paths for your next adventure.
+            Create smart routes with custom checkpoints and discover the best paths for your next adventure.
           </p>
           
           <div className="flex flex-wrap gap-4">
@@ -53,21 +52,6 @@ const Hero = () => {
             >
               <a href="#features">Learn More</a>
             </Button>
-          </div>
-          
-          <div className="flex flex-wrap gap-8 mt-12 pt-8 border-t border-border/50">
-            <div>
-              <div className="text-3xl font-bold text-primary">100K+</div>
-              <div className="text-sm text-muted-foreground">Routes Planned</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-primary">50K+</div>
-              <div className="text-sm text-muted-foreground">Happy Travelers</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-success">30%</div>
-              <div className="text-sm text-muted-foreground">Avg. CO₂ Saved</div>
-            </div>
           </div>
         </div>
       </div>

@@ -8,7 +8,6 @@ export interface Checkpoint {
 export interface RouteData {
   distance: number; // in meters
   duration: number; // in seconds
-  co2Emission: number; // in kg
   geometry: [number, number][]; // array of [lat, lng]
 }
 

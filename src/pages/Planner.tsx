@@ -4,6 +4,9 @@ import Footer from "@/components/Footer";
 import RouteForm from "@/components/RouteForm";
 import RouteMap from "@/components/RouteMap";
 import RouteDetails from "@/components/RouteDetails";
+import Itinerary from "@/components/Itinerary";
+import StayPlanner from "@/components/StayPlanner";
+import SuggestionBox from "@/components/SuggestionBox";
 import { Checkpoint, TravelMode, RouteData } from "@/types/route";
 import { toast } from "sonner";
 
@@ -57,16 +60,10 @@ const Planner = () => {
       setEndPoint(clickedPoint);
       toast.success("End point set!");
     } else {
-      // Add as checkpoint
-      const newCheckpoint: Checkpoint = {
-        id: Date.now().toString(),
-        name: `Checkpoint ${checkpointCounter}`,
-        coordinates: clickedPoint,
-      };
-      console.log('[Planner] Adding checkpoint', newCheckpoint);
-      setCheckpoints([...checkpoints, newCheckpoint]);
-      setCheckpointCounter(checkpointCounter + 1);
-      toast.success(`Checkpoint ${checkpointCounter} added!`);
+      // Update end point instead of adding checkpoints
+      console.log('[Planner] Updating endPoint', clickedPoint);
+      setEndPoint(clickedPoint);
+      toast.success("End point updated!");
     }
   };
 
@@ -105,7 +102,7 @@ const Planner = () => {
         start,
         end,
         mode,
-        checkpoints: routeCheckpoints,
+        checkpoints: [],
         signal: controller.signal,
       });
       console.log('[Planner] Routing success', { distance: data.distance, duration: data.duration, points: data.geometry.length });
@@ -130,7 +127,7 @@ const Planner = () => {
               Route <span className="text-gradient">Planner</span>
             </h1>
             <p className="text-muted-foreground">
-              Plan your journey with custom checkpoints and see detailed route information.
+              Plan your journey and see detailed route information. A full itinerary will be generated for you.
             </p>
           </div>
 
@@ -150,6 +147,9 @@ const Planner = () => {
                 currentLocation={currentLocation}
               />
               {routeData && <RouteDetails routeData={routeData} />}
+              {routeData && <Itinerary routeData={routeData} />}
+              {endPoint && <StayPlanner endPoint={endPoint} />}
+              {endPoint && <SuggestionBox endPoint={endPoint} />}
             </div>
 
             <div className="lg:col-span-2">
@@ -157,7 +157,6 @@ const Planner = () => {
                 routeGeometry={routeData?.geometry}
                 startPoint={startPoint}
                 endPoint={endPoint}
-                checkpoints={checkpoints}
                 onMapClick={handleMapClick}
                 currentLocation={currentLocation}
               />

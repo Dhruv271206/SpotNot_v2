@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Navigation, Plus, X, Car, Bike, Footprints, Locate, MapPinned, Edit3 } from "lucide-react";
+import { MapPin, Navigation, Plus, X, Car, Bike, Footprints, Locate, MapPinned, Edit3, Search } from "lucide-react";
 import { Checkpoint, TravelMode } from "@/types/route";
 import { toast } from "sonner";
 
@@ -44,6 +44,12 @@ const RouteForm = ({
   const [manualStartLng, setManualStartLng] = useState("");
   const [manualEndLat, setManualEndLat] = useState("");
   const [manualEndLng, setManualEndLng] = useState("");
+  const [startQuery, setStartQuery] = useState("");
+  const [startResults, setStartResults] = useState<{ label: string; coords: [number, number] }[]>([]);
+  const [startLoading, setStartLoading] = useState(false);
+  const [destQuery, setDestQuery] = useState("");
+  const [destResults, setDestResults] = useState<{ label: string; coords: [number, number] }[]>([]);
+  const [destLoading, setDestLoading] = useState(false);
 
   // Update manual fields when points change
   useEffect(() => {
@@ -106,16 +112,11 @@ const RouteForm = ({
     toast.success("Route cleared");
   };
 
-  const removeCheckpoint = (id: string) => {
-    console.log('[RouteForm] Remove checkpoint', { id });
-    onCheckpointsChange(checkpoints.filter((cp) => cp.id !== id));
-    toast.success("Checkpoint removed");
-  };
 
   const getNextAction = () => {
     if (!startPoint) return "Click map to set start point";
     if (!endPoint) return "Click map to set end point";
-    return "Click map to add checkpoints";
+    return "Adjust points on the map, then calculate route to generate your journey";
   };
 
   const travelModes = [
@@ -231,6 +232,108 @@ const RouteForm = ({
             </div>
           )}
 
+          {/* Start Search */}
+          <div className="space-y-2 p-4 rounded-lg border bg-muted/50">
+            <Label className="flex items-center gap-2 text-sm">
+              <Search className="h-3 w-3 text-primary" />
+              Search Start by Name
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                placeholder="e.g., Times Square, New York"
+                value={startQuery}
+                onChange={(e) => setStartQuery(e.target.value)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    setStartLoading(true);
+                    const { searchPlaces } = await import("@/lib/geocode");
+                    const results = await searchPlaces(startQuery, 5);
+                    setStartResults(results.map(r => ({ label: r.displayName, coords: [r.lat, r.lng] })));
+                  } catch (err) {
+                    setStartResults([]);
+                  } finally {
+                    setStartLoading(false);
+                  }
+                }}
+                disabled={!startQuery.trim() || startLoading}
+              >
+                {startLoading ? "Searching..." : "Search"}
+              </Button>
+            </div>
+            {startResults.length > 0 && (
+              <div className="mt-2 space-y-2">
+                {startResults.map((r, i) => (
+                  <div
+                    key={i}
+                    className="p-2 rounded border bg-background hover:bg-muted cursor-pointer text-sm"
+                    onClick={() => {
+                      onStartPointChange(r.coords);
+                      setStartResults([]);
+                    }}
+                    title="Set as start"
+                  >
+                    {r.label}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Destination Search */}
+          <div className="space-y-2 p-4 rounded-lg border bg-muted/50">
+            <Label className="flex items-center gap-2 text-sm">
+              <Search className="h-3 w-3 text-primary" />
+              Search Destination by Name
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                placeholder="e.g., Eiffel Tower, Paris"
+                value={destQuery}
+                onChange={(e) => setDestQuery(e.target.value)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    setDestLoading(true);
+                    const { searchPlaces } = await import("@/lib/geocode");
+                    const results = await searchPlaces(destQuery, 5);
+                    setDestResults(results.map(r => ({ label: r.displayName, coords: [r.lat, r.lng] })));
+                  } catch (err) {
+                    setDestResults([]);
+                  } finally {
+                    setDestLoading(false);
+                  }
+                }}
+                disabled={!destQuery.trim() || destLoading}
+              >
+                {destLoading ? "Searching..." : "Search"}
+              </Button>
+            </div>
+            {destResults.length > 0 && (
+              <div className="mt-2 space-y-2">
+                {destResults.map((r, i) => (
+                  <div
+                    key={i}
+                    className="p-2 rounded border bg-background hover:bg-muted cursor-pointer text-sm"
+                    onClick={() => {
+                      onEndPointChange(r.coords);
+                      setDestResults([]);
+                    }}
+                    title="Set as destination"
+                  >
+                    {r.label}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Points Summary */}
           <div className="space-y-2">
             <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
@@ -303,71 +406,6 @@ const RouteForm = ({
             </div>
           </div>
 
-          {/* Checkpoints Section */}
-          <div className="space-y-4 pt-4 border-t">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-semibold">
-                Checkpoints ({checkpoints.length})
-              </Label>
-              {checkpoints.length > 0 && startPoint && endPoint && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearRoute}
-                >
-                  Clear All
-                </Button>
-              )}
-            </div>
-            
-            {checkpoints.length > 0 ? (
-              <div className="space-y-2">
-                {checkpoints.map((checkpoint, index) => (
-                  <div
-                    key={checkpoint.id}
-                    className="flex items-start gap-3 p-3 rounded-lg bg-muted"
-                  >
-                    <div className="flex-1">
-                      <div className="font-medium">
-                        {index + 1}. {checkpoint.name}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {checkpoint.coordinates[0].toFixed(4)}, {checkpoint.coordinates[1].toFixed(4)}
-                      </div>
-                      {checkpoint.notes && (
-                        <div className="text-sm text-muted-foreground mt-1">
-                          {checkpoint.notes}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => { console.log('[RouteForm] Mark reached clicked', { id: checkpoint.id }); onCheckpointReached?.(checkpoint.id); }}
-                      >
-                        Mark reached
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeCheckpoint(checkpoint.id)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-sm text-muted-foreground text-center py-4">
-                Click on the map to add checkpoints after setting start and end points
-              </div>
-            )}
-          </div>
 
           <div className="flex gap-2">
             <Button 

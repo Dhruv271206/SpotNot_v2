@@ -64,13 +64,6 @@ export async function routeWithOSRM(params: {
   const geometry: [number, number][] = (best.geometry.coordinates as [number, number][]) // [lon,lat]
     .map(fromLonLat);
 
-  // Estimate CO2 based on mode (same approach as before)
-  const emissions = {
-    driving: 0.12,
-    cycling: 0,
-    walking: 0,
-  } as const;
-  const co2Emission = (distance / 1000) * emissions[mode];
-
-  return { distance, duration, co2Emission, geometry };
+  // Return basic routing data only; emissions removed
+  return { distance, duration, geometry };
 }

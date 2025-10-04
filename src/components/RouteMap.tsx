@@ -3,11 +3,14 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Checkpoint } from "@/types/route";
 
+interface SuggestedItem { name: string; coordinates: [number, number]; category?: string }
+
 interface RouteMapProps {
   routeGeometry?: [number, number][];
   startPoint?: [number, number];
   endPoint?: [number, number];
   checkpoints?: Checkpoint[];
+  suggestedPlaces?: SuggestedItem[];
   onMapClick?: (lat: number, lng: number) => void;
   currentLocation?: [number, number];
 }
@@ -20,12 +23,13 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-const RouteMap = ({ routeGeometry, startPoint, endPoint, checkpoints, onMapClick, currentLocation }: RouteMapProps) => {
+const RouteMap = ({ routeGeometry, startPoint, endPoint, checkpoints, suggestedPlaces, onMapClick, currentLocation }: RouteMapProps) => {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const routeLayerRef = useRef<L.Polyline | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
   const currentLocationMarkerRef = useRef<L.CircleMarker | null>(null);
+  const suggestedMarkersRef = useRef<L.Marker[]>([]);
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
@@ -100,6 +104,10 @@ const RouteMap = ({ routeGeometry, startPoint, endPoint, checkpoints, onMapClick
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current = [];
 
+    // Clear suggested markers
+    suggestedMarkersRef.current.forEach((m) => m.remove());
+    suggestedMarkersRef.current = [];
+
     // Add start marker
     if (startPoint) {
       const startIcon = L.divIcon({
@@ -146,6 +154,22 @@ const RouteMap = ({ routeGeometry, startPoint, endPoint, checkpoints, onMapClick
       });
     }
 
+    // Add suggested place markers (purple)
+    if (suggestedPlaces && suggestedPlaces.length > 0) {
+      suggestedPlaces.forEach((s) => {
+        const sugIcon = L.divIcon({
+          className: "custom-marker",
+          html: `<div style="background: hsl(262 83% 58%); width: 22px; height: 22px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>`,
+          iconSize: [22, 22],
+          iconAnchor: [11, 22],
+        });
+        const marker = L.marker(s.coordinates, { icon: sugIcon })
+          .bindPopup(`<b>${s.name}</b>${s.category ? `<br/><i>${s.category}</i>` : ""}`)
+          .addTo(map);
+        suggestedMarkersRef.current.push(marker);
+      });
+    }
+
     // Draw route
     if (routeGeometry && routeGeometry.length > 0) {
       routeLayerRef.current = L.polyline(routeGeometry, {
@@ -159,6 +183,7 @@ const RouteMap = ({ routeGeometry, startPoint, endPoint, checkpoints, onMapClick
         ...(startPoint ? [startPoint] : []),
         ...(endPoint ? [endPoint] : []),
         ...(checkpoints?.map((cp) => cp.coordinates) || []),
+        ...(suggestedPlaces?.map((s) => s.coordinates) || []),
       ];
       
       if (allPoints.length > 0) {

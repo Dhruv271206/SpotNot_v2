@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Clock, Route, Leaf } from "lucide-react";
+import { Clock, Route } from "lucide-react";
 import { RouteData } from "@/types/route";
 
 interface RouteDetailsProps {
@@ -51,23 +51,6 @@ const RouteDetails = ({ routeData }: RouteDetailsProps) => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-4 rounded-lg bg-success/10">
-            <div className="p-2 rounded-lg bg-success/20">
-              <Leaf className="h-5 w-5 text-success" />
-            </div>
-            <div className="flex-1">
-              <div className="text-sm text-muted-foreground">CO₂ Emission</div>
-              <div className="text-2xl font-bold text-success">
-                {routeData.co2Emission.toFixed(2)} kg
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-4 border-t">
-            <div className="text-sm text-muted-foreground">
-              💡 Tip: Consider cycling or walking for shorter distances to reduce your carbon footprint!
-            </div>
-          </div>
         </div>
       </CardContent>
     </Card>

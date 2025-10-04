@@ -14,8 +14,8 @@ const Features = () => {
     },
     {
       icon: Leaf,
-      title: "Eco-Friendly Routes",
-      description: "Track your carbon footprint with real-time CO₂ calculations. Choose greener transportation options and reduce your environmental impact.",
+      title: "Smart Route Options",
+      description: "Compare route options with live estimates. Choose the paths that best match your goals and travel preferences.",
       image: featureEco,
     },
     {
@@ -37,7 +37,7 @@ const Features = () => {
     {
       icon: BarChart,
       title: "Route Analytics",
-      description: "View detailed statistics about your route including distance, duration, elevation changes, and environmental impact.",
+      description: "View detailed statistics about your route including distance, duration, and elevation changes.",
     },
   ];
 
